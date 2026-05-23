@@ -1,0 +1,41 @@
+# .NET
+bin/
+obj/
+*.user
+*.suo
+*.dll
+*.pdb
+.vs/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+*.egg-info/
+
+# CodeCarbon outputs
+sidecar/emissions/
+emissions.csv
+.codecarbon.config
+
+# Results
+results/
+*.jtl
+*.jtl.log
+
+# Editor
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Generated data
+/tmp/petrescue_*
+
+
+.env
