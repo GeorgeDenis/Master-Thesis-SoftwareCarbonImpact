@@ -5,6 +5,7 @@ from domain_medical.models import MedicalRecord
 from domain_medical.schemas import CreateMedicalSchema
 from domain_shelter.services import find_animal_by_id
 from exceptions import NotFoundException
+from toggles import s3_optimized
 
 
 def add_medical(medical: CreateMedicalSchema):
@@ -31,17 +32,32 @@ def add_medical(medical: CreateMedicalSchema):
 
 
 def fetch_all_medicals():
+    """
+    S1 Baseline: lazy loading – accessing m.animal.name on each row triggers
+    an extra SELECT per row (the N+1 anti-pattern).
+    Response format matches .NET: { count, sample: [first 3] }
+    """
     medical_records = SessionLocal.query(MedicalRecord).all()
 
-    result = [{"id": m.id,
-               "animal_id": m.animal_id,
-               "disease": m.disease,
-               "treatment": m.treatment,
-               "visit_date": m.visit_date.isoformat() if m.visit_date else None,
-               "animal_name": m.animal.name} for m in medical_records]
-    return result
+    projected = []
+    for m in medical_records:
+        # This .animal access is the N+1. SQLAlchemy lazy-loads each animal.
+        animal_name = m.animal.name if m.animal else "(unknown)"
+        projected.append({
+            "id": m.id,
+            "disease": m.disease,
+            "treatment": m.treatment,
+            "AnimalName": animal_name
+        })
+
+    return {"count": len(projected), "sample": projected[:3]}
+
 
 def fetch_all_medicals_optimized():
+    """
+    S1 Optimized: eager loading via JOIN – single query fetches all data.
+    Response format matches .NET: { count, sample: [first 3] }
+    """
     session = SessionLocal()
 
     query = text("""
@@ -52,35 +68,44 @@ def fetch_all_medicals_optimized():
                         m.visit_date,
                         a.name as animal_name
                  FROM medical_records m
-                          JOIN animals a ON m.animal_id = a.id LIMIT 1000;
+                          JOIN animals a ON m.animal_id = a.id;
                  """)
 
     result_proxy = session.execute(query)
 
-    result = []
+    projected = []
     for row in result_proxy:
-        result.append({
+        projected.append({
             "id": row.id,
-            "animal_id": row.animal_id,
             "disease": row.disease,
             "treatment": row.treatment,
-            "visit_date": row.visit_date.isoformat() if row.visit_date else None,
-            "animal_name": row.animal_name
+            "AnimalName": row.animal_name
         })
 
-    return result
+    return {"count": len(projected), "sample": projected[:3]}
 
 
 def search_disease_heavy_load():
+    """
+    S3 – Missing database index on medical_records.disease.
+    Runs 500 iterations of the same query.
+    Response format matches .NET: { iterations, disease, total, indexed }
+    """
     session = SessionLocal()
     target_disease = "Parvovirus"
+    iteration_count = 500
 
     total_found = 0
 
     query = text("SELECT COUNT(*) FROM medical_records WHERE disease = :disease")
 
-    for _ in range(500):
+    for _ in range(iteration_count):
         result = session.execute(query, {"disease": target_disease}).scalar()
         total_found += result
 
-    return {"searches_performed": 500, "records_found": total_found}
+    return {
+        "iterations": iteration_count,
+        "disease": target_disease,
+        "total": total_found,
+        "indexed": s3_optimized()
+    }

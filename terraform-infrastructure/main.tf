@@ -168,6 +168,28 @@ resource "aws_instance" "petrescue" {
   tags = { Name = var.instance_name }
 
   lifecycle {
-    ignore_changes = [ami] # don't replace on new Ubuntu releases
+    ignore_changes = [ami]
+  }
+}
+
+resource "aws_instance" "petrescue_flask" {
+  ami                    = data.aws_ami.ubuntu.id
+  instance_type          = "m7i-flex.large"
+  key_name               = aws_key_pair.petrescue.key_name
+  subnet_id              = aws_subnet.petrescue_public.id
+  vpc_security_group_ids = [aws_security_group.petrescue.id]
+
+  root_block_device {
+    volume_size = var.boot_volume_size_gb
+    volume_type = "gp3"
+    encrypted   = true
+  }
+
+  user_data = file("${path.module}/cloud-init.yaml")
+
+  tags = { Name = "petrescue-flask" }
+
+  lifecycle {
+    ignore_changes = [ami]
   }
 }

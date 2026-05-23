@@ -1,4 +1,3 @@
-from decouple import config
 from flask import Blueprint, jsonify, request
 from pydantic import ValidationError
 
@@ -6,15 +5,14 @@ from domain_medical.schemas import CreateMedicalSchema
 from domain_medical.services import fetch_all_medicals, search_disease_heavy_load, add_medical, \
     fetch_all_medicals_optimized
 from exceptions import NotFoundException
+from toggles import s1_optimized
 
 medical_bp = Blueprint('medical', __name__, url_prefix="/api/medical")
 
-IS_OPTIMIZED = config("IS_OPTIMIZED")
 
 @medical_bp.route('/s1/medical-records', methods=['GET'])
-# @measure_emissions(project_name="ORM_Legacy")
 def get_all_medicals():
-    if IS_OPTIMIZED:
+    if s1_optimized():
         return jsonify(fetch_all_medicals_optimized()), 200
     else:
         return jsonify(fetch_all_medicals()), 200
@@ -37,7 +35,6 @@ def post_medical():
 
 
 @medical_bp.route('/s3/disease-search', methods=['GET'])
-# @measure_emissions(project_name="Without_Index")
 def search_disease_endpoint():
     result = search_disease_heavy_load()
     return jsonify(result), 200

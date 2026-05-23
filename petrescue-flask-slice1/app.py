@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, jsonify
 
 import domain_adoption.models as adoption_models
 import domain_medical.models as medical_models
@@ -8,6 +8,7 @@ from domain_adoption.routes import adoption_bp
 from domain_medical.routes import medical_bp
 from domain_shelter.routes import shelter_bp
 from tracker_router import tracker_bp
+from toggles import s1_optimized, s2_optimized, s3_optimized, s4_optimized, s5_optimized
 
 app = Flask(__name__)
 
@@ -27,7 +28,16 @@ def shutdown_session(exception=None):
 
 @app.route('/health', methods=['GET'])
 def get_status():
-    return {"status": "ok"}, 200
+    return jsonify({
+        "status": "ok",
+        "toggles": {
+            "S1_Optimized": s1_optimized(),
+            "S2_Optimized": s2_optimized(),
+            "S3_Optimized": s3_optimized(),
+            "S4_Optimized": s4_optimized(),
+            "S5_Optimized": s5_optimized(),
+        }
+    }), 200
 
 
 if __name__ == '__main__':

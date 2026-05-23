@@ -1,21 +1,17 @@
-import uuid
-
-from decouple import config
 from flask import Blueprint, request
 from flask import jsonify
 from pydantic import ValidationError
 
 from domain_shelter.schemas import CreateShelterSchema, CreateAnimalSchema
-from domain_shelter.services import fetch_all_shelters, verify_microchips_inefficient, process_file_legacy, \
-    dashboard_stats_legacy, add_shelter, fetch_all_animals, add_animal, verify_microchips_efficient, \
-    process_file_optimized
+from domain_shelter.services import (
+    fetch_all_shelters, verify_microchips_inefficient, process_file_legacy,
+    dashboard_stats_legacy, add_shelter, fetch_all_animals, add_animal,
+    verify_microchips_efficient, process_file_optimized, dashboard_stats_optimized,
+)
 from exceptions import NotFoundException
+from toggles import s2_optimized, s4_optimized, s5_optimized
 
 shelter_bp = Blueprint('shelter', __name__, url_prefix="/api/shelter")
-
-MOCK_INCOMING_CHIPS = [str(uuid.uuid4()) for _ in range(20000)]
-
-IS_OPTIMIZED = config("IS_OPTIMIZED")
 
 
 @shelter_bp.route('', methods=['GET'])
@@ -60,26 +56,34 @@ def post_animal():
         return jsonify({"error": e.message}), 404
 
 
-@shelter_bp.route('/s2/microchip-match', methods=['GET'])
-# @measure_emissions(project_name="1_Algorithm_List_O_N")
-def check_chips_legacy():
-    if IS_OPTIMIZED:
-        return jsonify(verify_microchips_efficient(MOCK_INCOMING_CHIPS)), 200
+@shelter_bp.route('/s2/microchip-match', methods=['POST'])
+def check_chips():
+    """
+    S2 – Algorithmic complexity.
+    Accepts POST with JSON body: { "codes": ["MC-00000001", ...] }
+    Matches .NET S2 POST /api/s2/microchip-match contract.
+    """
+    data = request.get_json(silent=True) or {}
+    codes = data.get("codes", [])
+
+    if s2_optimized():
+        return jsonify(verify_microchips_efficient(codes)), 200
     else:
-        return jsonify(verify_microchips_inefficient(MOCK_INCOMING_CHIPS)), 200
+        return jsonify(verify_microchips_inefficient(codes)), 200
 
 
 @shelter_bp.route('/s4/file-search', methods=['GET'])
-# @measure_emissions(project_name="Legacy_Readlines")
 def import_legacy():
-    if IS_OPTIMIZED:
+    if s4_optimized():
         return jsonify(process_file_optimized()), 200
     else:
         return jsonify(process_file_legacy()), 200
 
 
 @shelter_bp.route('/s5/heavy-statistics', methods=['GET'])
-# @measure_emissions(project_name="Without_Cache")
-def get_stats_legacy():
-    result = dashboard_stats_legacy()
+def get_stats():
+    if s5_optimized():
+        result = dashboard_stats_optimized()
+    else:
+        result = dashboard_stats_legacy()
     return jsonify(result), 200
