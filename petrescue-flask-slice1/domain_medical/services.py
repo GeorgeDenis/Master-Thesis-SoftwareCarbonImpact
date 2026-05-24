@@ -32,16 +32,10 @@ def add_medical(medical: CreateMedicalSchema):
 
 
 def fetch_all_medicals():
-    """
-    S1 Baseline: lazy loading – accessing m.animal.name on each row triggers
-    an extra SELECT per row (the N+1 anti-pattern).
-    Response format matches .NET: { count, sample: [first 3] }
-    """
     medical_records = SessionLocal.query(MedicalRecord).all()
 
     projected = []
     for m in medical_records:
-        # This .animal access is the N+1. SQLAlchemy lazy-loads each animal.
         animal_name = m.animal.name if m.animal else "(unknown)"
         projected.append({
             "id": m.id,
@@ -54,10 +48,6 @@ def fetch_all_medicals():
 
 
 def fetch_all_medicals_optimized():
-    """
-    S1 Optimized: eager loading via JOIN – single query fetches all data.
-    Response format matches .NET: { count, sample: [first 3] }
-    """
     session = SessionLocal()
 
     query = text("""
@@ -86,11 +76,6 @@ def fetch_all_medicals_optimized():
 
 
 def search_disease_heavy_load():
-    """
-    S3 – Missing database index on medical_records.disease.
-    Runs 500 iterations of the same query.
-    Response format matches .NET: { iterations, disease, total, indexed }
-    """
     session = SessionLocal()
     target_disease = "Parvovirus"
     iteration_count = 500

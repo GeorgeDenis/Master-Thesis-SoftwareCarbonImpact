@@ -1,5 +1,7 @@
 import os
 
+from sqlalchemy import true
+
 
 def _get_bool(name: str) -> bool:
     v = os.environ.get(name, "")
@@ -14,16 +16,16 @@ S5_OPTIMIZED = property(lambda self: _get_bool("OPTIMIZE_S5_CACHE"))
 
 
 def s1_optimized() -> bool:
-    return _get_bool("OPTIMIZE_S1_EAGER")
+    return False
 
 def s2_optimized() -> bool:
-    return _get_bool("OPTIMIZE_S2_HASHSET")
+    return True
 
 def s3_optimized() -> bool:
-    return _get_bool("OPTIMIZE_S3_INDEX")
+    return True
 
 def s4_optimized() -> bool:
-    return _get_bool("OPTIMIZE_S4_MMAP")
+    return True
 
 def s5_optimized() -> bool:
-    return _get_bool("OPTIMIZE_S5_CACHE")
+    return True

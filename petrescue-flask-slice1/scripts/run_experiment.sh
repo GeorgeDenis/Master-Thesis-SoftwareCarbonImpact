@@ -218,9 +218,20 @@ EOF
     local requests_total errors p50_ms p95_ms p99_ms throughput_rps
     IFS=',' read -r requests_total errors p50_ms p95_ms p99_ms throughput_rps <<< "$stats"
 
+    # Sanitize co2_kg in case CodeCarbon wrote an empty string or NaN to the CSV
+    if [[ -z "$co2_kg" || "$co2_kg" == "NaN" || "$co2_kg" == "null" || "$co2_kg" == "None" ]]; then
+        co2_kg="0"
+    fi
+
     # 6. Per-request CO2 in mg.
     local co2_per_req_mg
-    co2_per_req_mg=$(python3 -c "print(f'{(float($co2_kg) * 1e6 / max(int($requests_total),1)):.4f}')")
+    co2_per_req_mg=$(python3 -c "
+try:
+    c = float('$co2_kg')
+except ValueError:
+    c = 0.0
+print(f'{(c * 1e6 / max(int($requests_total),1)):.4f}')
+")
 
     # 7. Append a row to the tidy CSV.
     echo "$started_at_utc,$scenario,$config,$users,$run,$duration_s,$requests_total,$errors,$p50_ms,$p95_ms,$p99_ms,$throughput_rps,$energy_kwh,$co2_kg,$co2_per_req_mg" >> "$OUTPUT_CSV"

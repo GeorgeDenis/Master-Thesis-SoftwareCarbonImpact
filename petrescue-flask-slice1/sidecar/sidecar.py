@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+from __future__ import annotations
 """
 CodeCarbon sidecar service.
 
@@ -25,6 +26,7 @@ Run:
 """
 import os
 import json
+import logging
 import threading
 import datetime as dt
 from pathlib import Path
