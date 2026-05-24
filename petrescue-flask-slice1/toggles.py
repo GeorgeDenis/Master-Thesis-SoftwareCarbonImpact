@@ -19,13 +19,13 @@ def s1_optimized() -> bool:
     return False
 
 def s2_optimized() -> bool:
-    return True
+    return False
 
 def s3_optimized() -> bool:
-    return True
+    return False
 
 def s4_optimized() -> bool:
-    return True
+    return False
 
 def s5_optimized() -> bool:
-    return True
+    return False
