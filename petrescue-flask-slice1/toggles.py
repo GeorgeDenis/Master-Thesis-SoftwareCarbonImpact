@@ -16,16 +16,17 @@ S5_OPTIMIZED = property(lambda self: _get_bool("OPTIMIZE_S5_CACHE"))
 
 
 def s1_optimized() -> bool:
-    return False
+    return _get_bool("OPTIMIZE_S1_EAGER")
 
 def s2_optimized() -> bool:
-    return False
+    return _get_bool("OPTIMIZE_S2_HASHSET")
 
 def s3_optimized() -> bool:
-    return False
+    return _get_bool("OPTIMIZE_S3_INDEX")
 
 def s4_optimized() -> bool:
-    return False
+    return _get_bool("OPTIMIZE_S4_MMAP")
 
 def s5_optimized() -> bool:
-    return False
+    return _get_bool("OPTIMIZE_S5_CACHE")
+
