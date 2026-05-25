@@ -13,6 +13,8 @@ using Microsoft.Extensions.Caching.Distributed;
 using PetRescue.Api.Data;
 using PetRescue.Api.Infrastructure;
 
+using System.Data;
+
 namespace PetRescue.Api.Scenarios;
 
 /// <summary>
@@ -59,16 +61,26 @@ public static class S5UncachedAggregation
 
     private static async Task<Dictionary<string, long>> ComputeAsync(PetRescueContext db)
     {
-        var rows = await db.Animals
-            .GroupJoin(
-                db.MedicalRecords,
-                a => a.Id,
-                m => m.AnimalId,
-                (a, ms) => new { a.Species, Visits = ms.Count() })
-            .GroupBy(x => x.Species)
-            .Select(g => new { Species = g.Key, Total = g.Sum(x => (long)x.Visits) })
-            .ToListAsync();
+        using var command = db.Database.GetDbConnection().CreateCommand();
+        command.CommandText = @"
+            SELECT a.species, COALESCE(SUM(sub.cnt), 0) AS total
+            FROM animals a
+            LEFT JOIN (
+                SELECT animal_id, COUNT(*) AS cnt
+                FROM medical_records
+                GROUP BY animal_id
+            ) sub ON a.id = sub.animal_id
+            GROUP BY a.species";
 
-        return rows.ToDictionary(r => r.Species, r => r.Total);
+        await db.Database.OpenConnectionAsync();
+        using var reader = await command.ExecuteReaderAsync();
+        var result = new Dictionary<string, long>();
+        while (await reader.ReadAsync())
+        {
+            var species = reader.GetString(0);
+            var total = reader.GetInt64(1);
+            result[species] = total;
+        }
+        return result;
     }
 }
