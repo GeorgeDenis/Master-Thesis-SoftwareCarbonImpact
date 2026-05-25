@@ -8,6 +8,7 @@ from domain_shelter.schemas import CreateShelterSchema, CreateAnimalSchema
 from domain_shelter.models import Shelter, Animal
 from exceptions import NotFoundException
 from redis_client import redis_client
+from sqlalchemy import text
 
 FILE_PATH = os.environ.get("PETRESCUE_MICROCHIP_FILE", "/tmp/petrescue_microchips.txt")
 TARGET_CHIP = "CHIP-TARGET-MARKER"
@@ -91,7 +92,7 @@ def fetch_all_animals():
 def verify_microchips_inefficient(incoming_codes):
     session = SessionLocal()
 
-    db_chips_list = [a.microchip_code for a in session.query(Animal).all()]
+    db_chips_list = [code for (code,) in session.query(Animal.microchip_code).all()]
 
     found_count = 0
 
@@ -105,7 +106,7 @@ def verify_microchips_inefficient(incoming_codes):
 def verify_microchips_efficient(incoming_codes):
     session = SessionLocal()
 
-    db_chips_set = {a.microchip_code for a in session.query(Animal).all()}
+    db_chips_set = {code for (code,) in session.query(Animal.microchip_code).all()}
 
     found_count = 0
 
@@ -155,15 +156,18 @@ def process_file_optimized():
 
 def generate_heavy_statistics():
     session = SessionLocal()
-
-    animals = session.query(Animal).all()
-
-    stats = defaultdict(int)
-    for animal in animals:
-        visit_count = len(animal.medical_records)
-        stats[animal.species] += visit_count
-
-    return dict(stats)
+    query = text("""
+        SELECT a.species, COALESCE(SUM(sub.cnt), 0) AS total
+        FROM animals a
+        LEFT JOIN (
+            SELECT animal_id, COUNT(*) AS cnt
+            FROM medical_records
+            GROUP BY animal_id
+        ) sub ON a.id = sub.animal_id
+        GROUP BY a.species
+    """)
+    rows = session.execute(query).fetchall()
+    return {row.species: int(row.total) for row in rows}
 
 
 def dashboard_stats_legacy():
