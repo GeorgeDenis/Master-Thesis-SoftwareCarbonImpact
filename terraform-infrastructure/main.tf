@@ -85,6 +85,20 @@ resource "aws_route_table_association" "petrescue" {
   route_table_id = aws_route_table.petrescue.id
 }
 
+resource "aws_subnet" "petrescue_public_b" {
+  vpc_id                  = aws_vpc.petrescue.id
+  cidr_block              = "10.0.2.0/24"
+  map_public_ip_on_launch = true
+  availability_zone       = "${var.aws_region}b"
+
+  tags = { Name = "petrescue-public-b" }
+}
+
+resource "aws_route_table_association" "petrescue_b" {
+  subnet_id      = aws_subnet.petrescue_public_b.id
+  route_table_id = aws_route_table.petrescue.id
+}
+
 # Security group: SSH, API (8080), CodeCarbon sidecar (5055), ICMP.
 resource "aws_security_group" "petrescue" {
   name_prefix = "petrescue-"
@@ -150,7 +164,7 @@ resource "aws_key_pair" "petrescue" {
 # -----------------------------------------------------------------------------
 # EC2 Instance — m7i-flex.large (Free Tier eligible: 2 vCPU, 8 GB RAM).
 # -----------------------------------------------------------------------------
-resource "aws_instance" "petrescue" {
+resource "aws_instance" "net_m7i" {
   ami                    = data.aws_ami.ubuntu.id
   instance_type          = "m7i-flex.large"
   key_name               = aws_key_pair.petrescue.key_name
@@ -165,14 +179,14 @@ resource "aws_instance" "petrescue" {
 
   user_data = file("${path.module}/cloud-init.yaml")
 
-  tags = { Name = var.instance_name }
+  tags = { Name = "net-m7i" }
 
   lifecycle {
     ignore_changes = [ami]
   }
 }
 
-resource "aws_instance" "petrescue_flask" {
+resource "aws_instance" "flask_m7i" {
   ami                    = data.aws_ami.ubuntu.id
   instance_type          = "m7i-flex.large"
   key_name               = aws_key_pair.petrescue.key_name
@@ -187,9 +201,90 @@ resource "aws_instance" "petrescue_flask" {
 
   user_data = file("${path.module}/cloud-init.yaml")
 
-  tags = { Name = "petrescue-flask" }
+  tags = { Name = "flask-m7i" }
 
   lifecycle {
     ignore_changes = [ami]
   }
+}
+# -----------------------------------------------------------------------------
+# EC2 Instances — c7i-flex.large (2 instances: 1 .NET, 1 Flask)
+# Each VM runs both baseline + optimized (script handles config switching).
+# -----------------------------------------------------------------------------
+
+resource "aws_instance" "net_c7i" {
+  ami                    = data.aws_ami.ubuntu.id
+  instance_type          = "c7i-flex.large"
+  key_name               = aws_key_pair.petrescue.key_name
+  subnet_id              = aws_subnet.petrescue_public_b.id
+  vpc_security_group_ids = [aws_security_group.petrescue.id]
+
+  root_block_device {
+    volume_size = var.boot_volume_size_gb
+    volume_type = "gp3"
+    encrypted   = true
+  }
+
+  user_data = file("${path.module}/cloud-init.yaml")
+  tags = { Name = "net-c7i" }
+  lifecycle { ignore_changes = [ami] }
+}
+
+resource "aws_instance" "flask_c7i" {
+  ami                    = data.aws_ami.ubuntu.id
+  instance_type          = "c7i-flex.large"
+  key_name               = aws_key_pair.petrescue.key_name
+  subnet_id              = aws_subnet.petrescue_public_b.id
+  vpc_security_group_ids = [aws_security_group.petrescue.id]
+
+  root_block_device {
+    volume_size = var.boot_volume_size_gb
+    volume_type = "gp3"
+    encrypted   = true
+  }
+
+  user_data = file("${path.module}/cloud-init.yaml")
+  tags = { Name = "flask-c7i" }
+  lifecycle { ignore_changes = [ami] }
+}
+
+# -----------------------------------------------------------------------------
+# EC2 Instances — t3.small (2 instances: 1 .NET, 1 Flask)
+# Burstable, 2 vCPU, 2 GB RAM — natural CPU/RAM bottleneck.
+# -----------------------------------------------------------------------------
+
+resource "aws_instance" "net_t3" {
+  ami                    = data.aws_ami.ubuntu.id
+  instance_type          = "t3.small"
+  key_name               = aws_key_pair.petrescue.key_name
+  subnet_id              = aws_subnet.petrescue_public.id
+  vpc_security_group_ids = [aws_security_group.petrescue.id]
+
+  root_block_device {
+    volume_size = var.boot_volume_size_gb
+    volume_type = "gp3"
+    encrypted   = true
+  }
+
+  user_data = file("${path.module}/cloud-init.yaml")
+  tags = { Name = "net-t3" }
+  lifecycle { ignore_changes = [ami] }
+}
+
+resource "aws_instance" "flask_t3" {
+  ami                    = data.aws_ami.ubuntu.id
+  instance_type          = "t3.small"
+  key_name               = aws_key_pair.petrescue.key_name
+  subnet_id              = aws_subnet.petrescue_public.id
+  vpc_security_group_ids = [aws_security_group.petrescue.id]
+
+  root_block_device {
+    volume_size = var.boot_volume_size_gb
+    volume_type = "gp3"
+    encrypted   = true
+  }
+
+  user_data = file("${path.module}/cloud-init.yaml")
+  tags = { Name = "flask-t3" }
+  lifecycle { ignore_changes = [ami] }
 }

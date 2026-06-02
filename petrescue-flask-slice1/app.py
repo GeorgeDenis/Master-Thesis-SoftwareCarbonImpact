@@ -26,6 +26,7 @@ def shutdown_session(exception=None):
 
 @app.route('/health', methods=['GET'])
 def get_status():
+    from domain_shelter.services import FILE_PATH
     return jsonify({
         "status": "ok",
         "toggles": {
@@ -34,7 +35,8 @@ def get_status():
             "S3_Optimized": s3_optimized(),
             "S4_Optimized": s4_optimized(),
             "S5_Optimized": s5_optimized(),
-        }
+        },
+        "microchipFile": FILE_PATH
     }), 200
 
 

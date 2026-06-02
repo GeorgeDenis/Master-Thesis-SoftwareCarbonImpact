@@ -24,6 +24,8 @@ packages:
   - postgresql-client
   - htop
   - iotop
+  - jq
+  - default-jre
 
 write_files:
   # A helper script that installs the .NET 10 ASP.NET Core runtime.
@@ -35,8 +37,7 @@ write_files:
       set -euo pipefail
       wget -q https://dot.net/v1/dotnet-install.sh -O /tmp/dotnet-install.sh
       chmod +x /tmp/dotnet-install.sh
-      /tmp/dotnet-install.sh --channel 10.0 --runtime aspnetcore \
-          --install-dir /usr/share/dotnet
+      /tmp/dotnet-install.sh --channel 10.0 --install-dir /usr/share/dotnet
       ln -sf /usr/share/dotnet/dotnet /usr/local/bin/dotnet
       dotnet --info | head -20
 
@@ -54,7 +55,14 @@ runcmd:
   - [ sh, -c, "/usr/local/bin/install-dotnet10.sh > /var/log/dotnet-install.log 2>&1" ]
 
   # ---------------------------------------------------------------------
-  # Step 3: Announce completion in the cloud-init log.
+  # Step 3: Install JMeter
+  # ---------------------------------------------------------------------
+  - [ sh, -c, "wget -q https://archive.apache.org/dist/jmeter/binaries/apache-jmeter-5.6.3.tgz -O /tmp/jmeter.tgz" ]
+  - [ sh, -c, "tar -xzf /tmp/jmeter.tgz -C /opt" ]
+  - [ sh, -c, "ln -s /opt/apache-jmeter-5.6.3/bin/jmeter /usr/local/bin/jmeter" ]
+
+  # ---------------------------------------------------------------------
+  # Step 4: Announce completion in the cloud-init log.
   # ---------------------------------------------------------------------
   - [ sh, -c, "echo '==========================================' >> /var/log/cloud-init-output.log" ]
   - [ sh, -c, "echo 'PetRescue bootstrap complete.' >> /var/log/cloud-init-output.log" ]
@@ -64,3 +72,4 @@ runcmd:
   - [ sh, -c, "dotnet --info | head -5 >> /var/log/cloud-init-output.log" ]
   - [ sh, -c, "docker --version >> /var/log/cloud-init-output.log" ]
   - [ sh, -c, "python3 --version >> /var/log/cloud-init-output.log" ]
+  - [ sh, -c, "jmeter --version | head -2 >> /var/log/cloud-init-output.log" ]

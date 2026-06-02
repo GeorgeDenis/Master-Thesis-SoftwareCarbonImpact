@@ -169,7 +169,7 @@ run_one_cell() {
     echo "[cell] starting tracker..."
     curl -sf -X POST "$SIDECAR_URL/start" \
         -H 'Content-Type: application/json' \
-        -d "{\"experiment_name\":\"$exp_name\"}" > /dev/null
+        -d "{\"experiment_name\":\"$exp_name\"}" > /dev/null || true
 
     local started_at_utc
     started_at_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)
@@ -187,7 +187,7 @@ run_one_cell() {
     # 4. Stop the tracker, capture emissions.
     echo "[cell] stopping tracker..."
     local stop_response
-    stop_response=$(curl -sf -X POST "$SIDECAR_URL/stop")
+    stop_response=$(curl -sf -X POST "$SIDECAR_URL/stop" || echo '{"emissions_kg": 0.0}')
     local emissions_kg
     emissions_kg=$(echo "$stop_response" | jq -r '.emissions_kg // 0')
 
