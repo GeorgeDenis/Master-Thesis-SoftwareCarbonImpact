@@ -98,7 +98,7 @@ echo "[start_api] starting Flask API..."
 
 if [[ -n "$CPULIMIT" ]]; then
     echo "[start_api] wrapping with cpulimit -l $CPULIMIT"
-    cpulimit -l "$CPULIMIT" -- "$PROJECT_ROOT/.venv/bin/python" app.py < /dev/null > /tmp/flask_api.log 2>&1 &
+    cpulimit -f -m -l "$CPULIMIT" -- "$PROJECT_ROOT/.venv/bin/python" app.py < /dev/null > /tmp/flask_api.log 2>&1 &
 else
     "$PROJECT_ROOT/.venv/bin/python" app.py < /dev/null > /tmp/flask_api.log 2>&1 &
 fi
