@@ -144,6 +144,7 @@ for config in "${CONFIG_ARRAY[@]}"; do
     if [[ -n "$RUNS" ]]; then
         EXPERIMENT_ARGS+=(--runs "$RUNS")
     fi
+    EXPERIMENT_ARGS+=(--plan-dir "$PROJECT_ROOT/jmeter")
 
     echo "[run_full] running experiment: ${EXPERIMENT_ARGS[*]}"
     bash "$SCRIPT_DIR/run_experiment.sh" "${EXPERIMENT_ARGS[@]}"

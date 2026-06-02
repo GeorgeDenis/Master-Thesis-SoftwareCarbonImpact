@@ -139,7 +139,8 @@ for config in "${CONFIG_ARRAY[@]}"; do
         --configs "$config" \
         --scenarios "$SCENARIOS" \
         --loads "$LOADS" \
-        --runs "$RUNS"
+        --runs "$RUNS" \
+        --plan-dir "$PROJECT_ROOT/jmeter"
 
     # --- Stop the API ---
     bash "$SCRIPT_DIR/start_api.sh" --stop
