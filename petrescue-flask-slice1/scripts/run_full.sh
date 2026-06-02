@@ -80,9 +80,11 @@ if [[ -f /tmp/sidecar.pid ]]; then
 fi
 
 echo "[run_full] starting sidecar (sudo required for energy readings)..."
-sudo "$PROJECT_ROOT/sidecar/.venv/bin/python" "$PROJECT_ROOT/sidecar/sidecar.py" \
+pushd "$PROJECT_ROOT/sidecar" > /dev/null
+sudo "$PROJECT_ROOT/sidecar/.venv/bin/python" sidecar.py < /dev/null \
     > /tmp/sidecar.log 2>&1 &
 SIDECAR_PID=$!
+popd > /dev/null
 echo "$SIDECAR_PID" > /tmp/sidecar.pid
 echo "[run_full] sidecar PID=$SIDECAR_PID"
 

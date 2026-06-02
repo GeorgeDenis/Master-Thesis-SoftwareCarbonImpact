@@ -110,10 +110,10 @@ DOTNET_CMD="dotnet src/PetRescue.Api/bin/Release/net10.0/PetRescue.Api.dll --url
 
 if [[ -n "$CPULIMIT" ]]; then
     echo "[start_api] starting with cpulimit=${CPULIMIT}%..."
-    cpulimit -l "$CPULIMIT" -- $DOTNET_CMD > /tmp/dotnet_api.log 2>&1 &
+    cpulimit -l "$CPULIMIT" -- $DOTNET_CMD < /dev/null > /tmp/dotnet_api.log 2>&1 &
 else
     echo "[start_api] starting without cpulimit..."
-    $DOTNET_CMD > /tmp/dotnet_api.log 2>&1 &
+    $DOTNET_CMD < /dev/null > /tmp/dotnet_api.log 2>&1 &
 fi
 
 API_PID=$!

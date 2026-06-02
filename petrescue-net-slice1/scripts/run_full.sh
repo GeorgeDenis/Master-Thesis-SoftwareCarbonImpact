@@ -75,9 +75,11 @@ if [[ -f "$SIDECAR_PID_FILE" ]]; then
     rm -f "$SIDECAR_PID_FILE"
 fi
 
-sudo "$PROJECT_ROOT/sidecar/.venv/bin/python" "$PROJECT_ROOT/sidecar/sidecar.py" \
+pushd "$PROJECT_ROOT/sidecar" > /dev/null
+sudo "$PROJECT_ROOT/sidecar/.venv/bin/python" sidecar.py < /dev/null \
     > /tmp/sidecar.log 2>&1 &
 SIDECAR_PID=$!
+popd > /dev/null
 echo "$SIDECAR_PID" > "$SIDECAR_PID_FILE"
 echo "[run_full] sidecar PID: $SIDECAR_PID"
 
