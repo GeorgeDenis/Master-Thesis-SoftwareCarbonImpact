@@ -32,7 +32,8 @@ def add_medical(medical: CreateMedicalSchema):
 
 
 def fetch_all_medicals():
-    medical_records = SessionLocal.query(MedicalRecord).all()
+    session = SessionLocal()
+    medical_records = session.query(MedicalRecord).all()
 
     projected = []
     for m in medical_records:
