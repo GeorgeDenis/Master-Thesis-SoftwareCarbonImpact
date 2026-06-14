@@ -25,8 +25,6 @@ Run:
     python sidecar.py
 """
 import os
-import json
-import logging
 import threading
 import datetime as dt
 from pathlib import Path
@@ -71,9 +69,6 @@ def start():
 
         payload = request.get_json(silent=True) or {}
         experiment_name = payload.get("experiment_name", "unnamed_experiment")
-        # The output file is one CSV per experiment_name. CodeCarbon appends to it,
-        # which is exactly what we want when the orchestrator runs N repeats with the
-        # same experiment_name (one row per repeat).
         output_file = f"{experiment_name}.csv"
 
         _tracker = EmissionsTracker(
@@ -81,7 +76,7 @@ def start():
             output_dir=str(OUTPUT_DIR),
             output_file=output_file,
             measure_power_secs=1,
-            tracking_mode="machine",   # whole-host, not just this process
+            tracking_mode="machine",
             log_level="warning",
             save_to_file=True,
         )
@@ -104,8 +99,6 @@ def stop():
             return jsonify({"error": "no tracker running"}), 409
 
         emissions_kg = _tracker.stop()
-        # Some CodeCarbon versions expose more detail via the final_emissions_data field.
-        # Best effort: pull it if present.
         details = {}
         for attr in ("final_emissions_data", "_total_energy", "_total_cpu_energy",
                      "_total_gpu_energy", "_total_ram_energy"):
@@ -132,5 +125,4 @@ def stop():
 
 if __name__ == "__main__":
     port = int(os.environ.get("CODECARBON_SIDECAR_PORT", "5055"))
-    # Single-threaded so the tracker is never touched by two requests at once.
     app.run(host="127.0.0.1", port=port, threaded=False)
